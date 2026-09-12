@@ -16,13 +16,14 @@ import {
   LogIn
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import { api } from '../services/api';
 
 interface NavbarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
   onBenchmarkLoaded: () => void;
   pendingNudgesCount: number;
-  onOpenAuthModal: () => void;
+  onOpenAuthModal: (mode?: 'login' | 'register') => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -40,11 +41,7 @@ export const Navbar: React.FC<NavbarProps> = ({
   const handleLoadBenchmark = async () => {
     try {
       setLoadingBenchmark(true);
-      const res = await fetch('/api/jobs/load-benchmark', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-demo-user': 'true' },
-      });
-      const data = await res.json();
+      await api.jobs.loadBenchmark();
       setBenchmarkMsg('Loaded 12 jobs & 6 drafts!');
       onBenchmarkLoaded();
       setTimeout(() => setBenchmarkMsg(null), 4000);
@@ -70,74 +67,84 @@ export const Navbar: React.FC<NavbarProps> = ({
 
   return (
     <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 transition-all">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex items-center justify-between h-16">
-          {/* Brand Logo & Title */}
-          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('kanban')}>
-            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 p-0.5 shadow-md shadow-indigo-500/20">
+      <div className="max-w-[1700px] w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex items-center justify-between h-16 gap-4">
+          {/* Brand Logo & Title with clean whitespace protection */}
+          <div
+            className="flex items-center gap-3 cursor-pointer shrink-0"
+            onClick={() => setCurrentTab('kanban')}
+          >
+            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 p-0.5 shadow-md shadow-indigo-500/20 shrink-0">
               <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
                 <Sparkles className="w-4 h-4 text-indigo-400" />
               </div>
             </div>
-            <div>
+            <div className="flex flex-col justify-center">
               <div className="flex items-center gap-2">
-                <span className="font-bold text-sm tracking-tight text-white">AI Job Pipeline</span>
-                <span className="hidden sm:inline-flex px-1.5 py-0.5 text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded">
+                <span className="font-bold text-sm tracking-tight text-white whitespace-nowrap">
+                  AI Job Pipeline
+                </span>
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded whitespace-nowrap">
                   Google Cloud
                 </span>
-                <span className="hidden sm:inline-flex px-1.5 py-0.5 text-[9px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded items-center gap-1">
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 text-[9px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded items-center gap-1 whitespace-nowrap font-mono">
                   <Cpu className="w-2.5 h-2.5" /> Gemini 2.5
                 </span>
               </div>
-              <p className="text-[11px] text-slate-400 hidden sm:block">Career Optimization & Scheduled Nudges</p>
+              <p className="text-[11px] text-slate-400 whitespace-nowrap hidden sm:block">
+                Career Optimization & Scheduled Nudges
+              </p>
             </div>
           </div>
 
-          {/* Center Navigation Tabs */}
-          <nav className="hidden md:flex items-center space-x-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = currentTab === item.id;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => setCurrentTab(item.id)}
-                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
-                    isActive
-                      ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
-                  }`}
-                >
-                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
-                  <span>{item.label}</span>
-                  {item.badge !== undefined && (
-                    <span className="px-1.5 py-0.2 text-[10px] font-bold bg-amber-500 text-slate-950 rounded-full animate-pulse">
-                      {item.badge}
-                    </span>
-                  )}
-                </button>
-              );
-            })}
-          </nav>
+          {/* Center Navigation Tabs (Only visible when user is authenticated) */}
+          {user && (
+            <nav className="hidden md:flex items-center space-x-1.5 overflow-x-auto">
+              {navItems.map((item) => {
+                const Icon = item.icon;
+                const isActive = currentTab === item.id;
+                return (
+                  <button
+                    key={item.id}
+                    onClick={() => setCurrentTab(item.id)}
+                    className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all whitespace-nowrap ${
+                      isActive
+                        ? 'bg-indigo-600/15 text-indigo-300 border border-indigo-500/30 shadow-xs'
+                        : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
+                    }`}
+                  >
+                    <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                    <span>{item.label}</span>
+                    {item.badge !== undefined && (
+                      <span className="px-1.5 py-0.2 text-[10px] font-bold bg-amber-500 text-slate-950 rounded-full animate-pulse">
+                        {item.badge}
+                      </span>
+                    )}
+                  </button>
+                );
+              })}
+            </nav>
+          )}
 
           {/* Right Action Area */}
-          <div className="flex items-center gap-2.5">
-            {/* Benchmark Action Button */}
-            <button
-              onClick={handleLoadBenchmark}
-              disabled={loadingBenchmark}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 transition shadow-sm hover:border-slate-600 disabled:opacity-50"
-              title="Loads the 10+ standard evaluation job postings and historical drafts"
-            >
-              {loadingBenchmark ? (
-                <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-              ) : benchmarkMsg ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-              ) : (
-                <Database className="w-3.5 h-3.5 text-indigo-400" />
-              )}
-              <span className="hidden sm:inline">{benchmarkMsg || 'Seed 10+ Evaluation Jobs'}</span>
-            </button>
+          <div className="flex items-center gap-3 shrink-0">
+            {user && (
+              <button
+                onClick={handleLoadBenchmark}
+                disabled={loadingBenchmark}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-700/80 transition shadow-sm hover:border-slate-600 disabled:opacity-50"
+                title="Loads 12 evaluation job postings and historical drafts"
+              >
+                {loadingBenchmark ? (
+                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
+                ) : benchmarkMsg ? (
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
+                ) : (
+                  <Database className="w-3.5 h-3.5 text-indigo-400" />
+                )}
+                <span className="hidden sm:inline">{benchmarkMsg || 'Seed Evaluation Jobs'}</span>
+              </button>
+            )}
 
             {/* Authentication User Area */}
             {user ? (
@@ -149,19 +156,19 @@ export const Navbar: React.FC<NavbarProps> = ({
                   <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-500 to-sky-400 text-white font-bold flex items-center justify-center text-[10px]">
                     {user.name?.charAt(0).toUpperCase() || 'U'}
                   </div>
-                  <span className="text-slate-200 font-medium hidden sm:inline max-w-[100px] truncate">
-                    {user.name?.split(' ')[0] || user.email}
+                  <span className="text-slate-200 font-medium hidden sm:inline max-w-[120px] truncate">
+                    {user.name || user.email}
                   </span>
                   <ChevronDown className="w-3 h-3 text-slate-400" />
                 </button>
 
                 {showUserDropdown && (
-                  <div className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 z-50 text-xs space-y-1">
+                  <div className="absolute right-0 mt-2 w-60 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 z-50 text-xs space-y-1">
                     <div className="px-3 py-2 border-b border-slate-800">
                       <p className="font-semibold text-white truncate">{user.name}</p>
-                      <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                      <p className="text-[11px] text-slate-400 truncate font-mono">{user.email}</p>
                       <span className="mt-1 inline-block px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
-                        Authenticated Candidate
+                        Authenticated Session
                       </span>
                     </div>
 
@@ -190,44 +197,55 @@ export const Navbar: React.FC<NavbarProps> = ({
                 )}
               </div>
             ) : (
-              <button
-                onClick={onOpenAuthModal}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition"
-              >
-                <LogIn className="w-3.5 h-3.5" />
-                <span>Sign In</span>
-              </button>
+              <div className="flex items-center gap-2">
+                <button
+                  onClick={() => onOpenAuthModal('login')}
+                  className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700 text-slate-200 transition"
+                >
+                  <LogIn className="w-3.5 h-3.5" />
+                  <span>Sign In</span>
+                </button>
+
+                <button
+                  onClick={() => onOpenAuthModal('register')}
+                  className="flex items-center gap-1.5 px-3.5 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition"
+                >
+                  <span>Register</span>
+                </button>
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Mobile Nav Tabs */}
-      <div className="md:hidden flex overflow-x-auto border-t border-slate-800/80 px-2 py-1.5 space-x-1">
-        {navItems.map((item) => {
-          const Icon = item.icon;
-          const isActive = currentTab === item.id;
-          return (
-            <button
-              key={item.id}
-              onClick={() => setCurrentTab(item.id)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap ${
-                isActive
-                  ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
-                  : 'text-slate-400 hover:bg-slate-800'
-              }`}
-            >
-              <Icon className="w-3.5 h-3.5" />
-              <span>{item.label}</span>
-              {item.badge !== undefined && (
-                <span className="px-1.5 py-0.2 text-[10px] font-bold bg-amber-500 text-slate-950 rounded-full">
-                  {item.badge}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Mobile Navigation Bar */}
+      {user && (
+        <div className="md:hidden flex overflow-x-auto border-t border-slate-800/80 px-2 py-1.5 space-x-1">
+          {navItems.map((item) => {
+            const Icon = item.icon;
+            const isActive = currentTab === item.id;
+            return (
+              <button
+                key={item.id}
+                onClick={() => setCurrentTab(item.id)}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium whitespace-nowrap ${
+                  isActive
+                    ? 'bg-indigo-600/20 text-indigo-400 border border-indigo-500/30'
+                    : 'text-slate-400 hover:bg-slate-800'
+                }`}
+              >
+                <Icon className="w-3.5 h-3.5" />
+                <span>{item.label}</span>
+                {item.badge !== undefined && (
+                  <span className="px-1.5 py-0.2 text-[10px] font-bold bg-amber-500 text-slate-950 rounded-full">
+                    {item.badge}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
     </header>
   );
 };

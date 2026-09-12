@@ -15,6 +15,8 @@ import {
   Table
 } from 'lucide-react';
 
+import { api } from '../services/api';
+
 interface IngestionWizardProps {
   onIngestionComplete: () => void;
   showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
@@ -47,13 +49,7 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
       setIsProcessing(true);
       setError(null);
       setResult(null);
-      const res = await fetch('/api/jobs/ingest-csv', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-demo-user': 'true' },
-        body: JSON.stringify({ csvContent: postingsCsv }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to ingest postings');
+      const data = await api.jobs.ingestCsv(postingsCsv);
       setResult({
         type: 'postings',
         count: data.count,
@@ -74,13 +70,7 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
       setIsProcessing(true);
       setError(null);
       setResult(null);
-      const res = await fetch('/api/jobs/ingest-drafts-csv', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-demo-user': 'true' },
-        body: JSON.stringify({ csvContent: draftsCsv }),
-      });
-      const data = await res.json();
-      if (!res.ok) throw new Error(data.error || 'Failed to ingest drafts');
+      const data = await api.jobs.ingestDraftsCsv(draftsCsv);
       setResult({
         type: 'drafts',
         count: data.count,

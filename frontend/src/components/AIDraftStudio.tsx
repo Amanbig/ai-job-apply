@@ -20,6 +20,7 @@ import {
   Sliders
 } from 'lucide-react';
 import { JobPosting, Draft } from '../types';
+import { api } from '../services/api';
 
 interface AIDraftStudioProps {
   jobs: JobPosting[];
@@ -71,10 +72,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
   const loadJobDrafts = async (jobId: number) => {
     try {
       setLoadingHistory(true);
-      const res = await fetch(`/api/drafts?jobId=${jobId}`, {
-        headers: { 'x-demo-user': 'true' },
-      });
-      const data = await res.json();
+      const data = await api.drafts.getAll({ jobId });
       const existing = data.drafts?.find((d: Draft) => d.type === draftType) || data.drafts?.[0];
 
       if (existing) {
@@ -88,10 +86,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
         setAnalysis(null);
       }
 
-      const allRes = await fetch('/api/drafts', {
-        headers: { 'x-demo-user': 'true' },
-      });
-      const allData = await allRes.json();
+      const allData = await api.drafts.getAll();
       setHistoricalDrafts(allData.drafts || []);
     } catch (err) {
       console.error('Failed to load drafts:', err);
@@ -108,18 +103,13 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
         customInstructions,
       ].filter(Boolean).join('. ');
 
-      const res = await fetch('/api/drafts/generate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-demo-user': 'true' },
-        body: JSON.stringify({
-          jobId: activeJobId,
-          type: draftType,
-          customInstructions: combinedInstructions,
-          modelOverride: selectedModel,
-        }),
+      const data = await api.drafts.generate({
+        jobId: activeJobId,
+        type: draftType,
+        customInstructions: combinedInstructions,
+        modelOverride: selectedModel,
       });
 
-      const data = await res.json();
       if (data.draft) {
         setActiveDraft(data.draft);
         setDraftContent(data.draft.contents);
@@ -138,16 +128,12 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
   const handleSaveDraft = async (newStatus?: string) => {
     if (!activeDraft) return;
     try {
-      const res = await fetch(`/api/drafts/${activeDraft.id}`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-demo-user': 'true' },
-        body: JSON.stringify({
-          contents: draftContent,
-          status: newStatus || activeDraft.status,
-          atsScore,
-        }),
+      const data = await api.drafts.update(activeDraft.id, {
+        contents: draftContent,
+        status: newStatus || activeDraft.status,
+        atsScore,
       });
-      const data = await res.json();
+
       if (data.draft) {
         setActiveDraft(data.draft);
         onDraftSaved();

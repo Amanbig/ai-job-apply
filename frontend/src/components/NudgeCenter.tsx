@@ -15,6 +15,7 @@ import {
   CalendarDays
 } from 'lucide-react';
 import { Nudge } from '../types';
+import { api } from '../services/api';
 
 interface NudgeCenterProps {
   nudges: Nudge[];
@@ -37,11 +38,7 @@ export const NudgeCenter: React.FC<NudgeCenterProps> = ({
   const handleRunEvaluationPass = async () => {
     try {
       setEvaluating(true);
-      const res = await fetch('/api/nudges/evaluate', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-demo-user': 'true' },
-      });
-      const data = await res.json();
+      const data = await api.nudges.evaluate();
       setEvalResultMsg(data.message || 'Evaluated applications for nudges.');
       onRefreshNudges();
       if (showToast) showToast('Scheduled nudge evaluation completed!', 'success');
@@ -56,12 +53,7 @@ export const NudgeCenter: React.FC<NudgeCenterProps> = ({
   const handleUpdateStatus = async (nudgeId: string, status: 'completed' | 'dismissed') => {
     try {
       setUpdatingId(nudgeId);
-      const res = await fetch(`/api/nudges/${nudgeId}/status`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json', 'x-demo-user': 'true' },
-        body: JSON.stringify({ status }),
-      });
-      await res.json();
+      await api.nudges.updateStatus(nudgeId, status);
       onRefreshNudges();
       if (showToast) showToast(`Nudge marked as ${status}!`, 'info');
     } catch (err: any) {
