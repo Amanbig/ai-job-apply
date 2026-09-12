@@ -52,7 +52,22 @@ export class GeminiService {
 
   constructor() {
     this.apiKey = process.env.GEMINI_API_KEY || '';
-    if (this.apiKey) {
+    const useEnterprise = process.env.GOOGLE_GENAI_USE_ENTERPRISE === 'true' || process.env.GOOGLE_GENAI_USE_VERTEXAI === 'true';
+    const gcpProject = process.env.GOOGLE_CLOUD_PROJECT || process.env.GCP_PROJECT;
+    const gcpLocation = process.env.GOOGLE_CLOUD_LOCATION || process.env.GCP_LOCATION || 'us-central1';
+
+    if (useEnterprise || (gcpProject && !this.apiKey)) {
+      try {
+        this.client = new GoogleGenAI({
+          enterprise: true,
+          project: gcpProject,
+          location: gcpLocation,
+        });
+        console.log(`🤖 Google GenAI initialized using Vertex AI (Project: ${gcpProject || 'default'}, Region: ${gcpLocation})`);
+      } catch (err) {
+        console.warn('⚠️ GoogleGenAI Vertex AI init warning:', err);
+      }
+    } else if (this.apiKey) {
       try {
         this.client = new GoogleGenAI({ apiKey: this.apiKey });
       } catch (err) {
