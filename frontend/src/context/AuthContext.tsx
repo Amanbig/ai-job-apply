@@ -20,30 +20,33 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     const initAuth = async () => {
-      const savedToken = localStorage.getItem('token');
-      if (savedToken) {
-        try {
-          const res = await fetch('/api/auth/me', {
-            headers: {
-              Authorization: `Bearer ${savedToken}`,
-              'Content-Type': 'application/json',
-            },
-          });
-          if (res.ok) {
-            const data = await res.json();
-            setUser(data.user);
-            setToken(savedToken);
-          } else {
-            // Token expired or invalid, clear
-            localStorage.removeItem('token');
-            setToken(null);
-            setUser(null);
-          }
-        } catch (err) {
-          console.error('Failed to verify existing session:', err);
+      try {
+        const savedToken = localStorage.getItem('token');
+        const headers: HeadersInit = { 'Content-Type': 'application/json' };
+        if (savedToken) {
+          headers['Authorization'] = `Bearer ${savedToken}`;
         }
+
+        const res = await fetch('/api/auth/me', {
+          headers,
+          credentials: 'include',
+        });
+
+        if (res.ok) {
+          const data = await res.json();
+          setUser(data.user);
+          if (savedToken) setToken(savedToken);
+        } else {
+          localStorage.removeItem('token');
+          setToken(null);
+          setUser(null);
+        }
+      } catch (err) {
+        console.error('Failed to verify existing session:', err);
+        setUser(null);
+      } finally {
+        setIsLoading(false);
       }
-      setIsLoading(false);
     };
 
     initAuth();
@@ -53,13 +56,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await fetch('/api/auth/login', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ email, password }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to sign in');
 
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+    }
     setUser(data.user);
   };
 
@@ -67,13 +73,16 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await fetch('/api/auth/register', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
       body: JSON.stringify({ name, email, password }),
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to create account');
 
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+    }
     setUser(data.user);
   };
 
@@ -81,16 +90,27 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const res = await fetch('/api/auth/demo', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
     });
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Demo sign in failed');
 
-    localStorage.setItem('token', data.token);
-    setToken(data.token);
+    if (data.token) {
+      localStorage.setItem('token', data.token);
+      setToken(data.token);
+    }
     setUser(data.user);
   };
 
-  const logout = () => {
+  const logout = async () => {
+    try {
+      await fetch('/api/auth/logout', {
+        method: 'POST',
+        credentials: 'include',
+      });
+    } catch (e) {
+      console.error('Logout error:', e);
+    }
     localStorage.removeItem('token');
     setToken(null);
     setUser(null);

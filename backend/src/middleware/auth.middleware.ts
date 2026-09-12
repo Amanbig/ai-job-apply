@@ -13,16 +13,23 @@ export interface AuthRequest extends Request {
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secure_ai_job_tracker_jwt_secret_2026';
 
 export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
-  const authHeader = req.headers.authorization;
+  let token: string | undefined;
 
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+  // 1. Prefer secure HTTP-only cookie (web browser sessions)
+  if (req.cookies && req.cookies.token) {
+    token = req.cookies.token;
+  }
+  // 2. Fall back to Authorization Bearer header (CLI, curl, evaluation test scripts)
+  else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
+    token = req.headers.authorization.split(' ')[1];
+  }
+
+  if (!token) {
     res.status(401).json({
-      error: 'Unauthorized: Authentication required. Please provide a valid Bearer token.',
+      error: 'Unauthorized: Authentication required. Please sign in or provide a valid authorization token.',
     });
     return;
   }
-
-  const token = authHeader.split(' ')[1];
 
   try {
     const decoded = jwt.verify(token, JWT_SECRET) as { userId: string; email: string };

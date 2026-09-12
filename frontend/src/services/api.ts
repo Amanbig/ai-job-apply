@@ -10,14 +10,6 @@ import {
 
 const BASE_URL = '/api';
 
-function getAuthHeaders(): HeadersInit {
-  const token = localStorage.getItem('token');
-  return {
-    'Content-Type': 'application/json',
-    ...(token ? { Authorization: `Bearer ${token}` } : {}),
-  };
-}
-
 async function handleResponse<T>(res: Response): Promise<T> {
   if (!res.ok) {
     const errorData = await res.json().catch(() => ({ error: res.statusText }));
@@ -26,20 +18,43 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
+async function fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  const token = localStorage.getItem('token');
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    ...(options.headers || {}),
+  };
+
+  const response = await fetch(`${BASE_URL}${endpoint}`, {
+    ...options,
+    headers,
+    credentials: 'include', // Automatically transmits HTTP-only cookies in browsers
+  });
+
+  return handleResponse<T>(response);
+}
+
 export const api = {
   auth: {
     demoLogin: async (): Promise<{ user: User; token: string }> => {
-      const res = await fetch(`${BASE_URL}/auth/demo`, {
+      const data = await fetchWithAuth<{ user: User; token: string }>('/auth/demo', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
       });
-      const data = await handleResponse<{ user: User; token: string }>(res);
-      localStorage.setItem('token', data.token);
+      if (data.token) {
+        localStorage.setItem('token', data.token);
+      }
       return data;
     },
     getMe: async (): Promise<{ user: User }> => {
-      const res = await fetch(`${BASE_URL}/auth/me`, { headers: getAuthHeaders() });
-      return handleResponse<{ user: User }>(res);
+      return fetchWithAuth<{ user: User }>('/auth/me');
+    },
+    logout: async (): Promise<{ message: string }> => {
+      const res = await fetchWithAuth<{ message: string }>('/auth/logout', {
+        method: 'POST',
+      });
+      localStorage.removeItem('token');
+      return res;
     },
   },
 
@@ -48,43 +63,33 @@ export const api = {
       const query = new URLSearchParams();
       if (params?.type && params.type !== 'all') query.set('type', params.type);
       if (params?.search) query.set('search', params.search);
-      const res = await fetch(`${BASE_URL}/jobs?${query.toString()}`, { headers: getAuthHeaders() });
-      return handleResponse<{ postings: JobPosting[] }>(res);
+      return fetchWithAuth<{ postings: JobPosting[] }>(`/jobs?${query.toString()}`);
     },
     getById: async (id: number): Promise<{ posting: JobPosting }> => {
-      const res = await fetch(`${BASE_URL}/jobs/${id}`, { headers: getAuthHeaders() });
-      return handleResponse<{ posting: JobPosting }>(res);
+      return fetchWithAuth<{ posting: JobPosting }>(`/jobs/${id}`);
     },
     create: async (data: { from?: string; to?: string; type: string; description: string }): Promise<{ posting: JobPosting }> => {
-      const res = await fetch(`${BASE_URL}/jobs`, {
+      return fetchWithAuth<{ posting: JobPosting }>('/jobs', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       });
-      return handleResponse<{ posting: JobPosting }>(res);
     },
     ingestCsv: async (csvContent: string): Promise<any> => {
-      const res = await fetch(`${BASE_URL}/jobs/ingest-csv`, {
+      return fetchWithAuth<any>('/jobs/ingest-csv', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ csvContent }),
       });
-      return handleResponse<any>(res);
     },
     ingestDraftsCsv: async (csvContent: string): Promise<any> => {
-      const res = await fetch(`${BASE_URL}/jobs/ingest-drafts-csv`, {
+      return fetchWithAuth<any>('/jobs/ingest-drafts-csv', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ csvContent }),
       });
-      return handleResponse<any>(res);
     },
     loadBenchmark: async (): Promise<any> => {
-      const res = await fetch(`${BASE_URL}/jobs/load-benchmark`, {
+      return fetchWithAuth<any>('/jobs/load-benchmark', {
         method: 'POST',
-        headers: getAuthHeaders(),
       });
-      return handleResponse<any>(res);
     },
   },
 
@@ -92,27 +97,22 @@ export const api = {
     getAll: async (status?: string): Promise<{ applications: Application[] }> => {
       const query = new URLSearchParams();
       if (status && status !== 'all') query.set('status', status);
-      const res = await fetch(`${BASE_URL}/applications?${query.toString()}`, { headers: getAuthHeaders() });
-      return handleResponse<{ applications: Application[] }>(res);
+      return fetchWithAuth<{ applications: Application[] }>(`/applications?${query.toString()}`);
     },
     getById: async (id: string): Promise<{ application: Application }> => {
-      const res = await fetch(`${BASE_URL}/applications/${id}`, { headers: getAuthHeaders() });
-      return handleResponse<{ application: Application }>(res);
+      return fetchWithAuth<{ application: Application }>(`/applications/${id}`);
     },
     updateStatus: async (
       id: string,
       data: { status: string; note?: string; interviewDate?: string; salaryOffer?: string }
     ): Promise<{ application: Application }> => {
-      const res = await fetch(`${BASE_URL}/applications/${id}/status`, {
+      return fetchWithAuth<{ application: Application }>(`/applications/${id}/status`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       });
-      return handleResponse<{ application: Application }>(res);
     },
     getHistory: async (id: string): Promise<{ logs: StatusTransitionLog[] }> => {
-      const res = await fetch(`${BASE_URL}/applications/${id}/history`, { headers: getAuthHeaders() });
-      return handleResponse<{ logs: StatusTransitionLog[] }>(res);
+      return fetchWithAuth<{ logs: StatusTransitionLog[] }>(`/applications/${id}/history`);
     },
   },
 
@@ -122,8 +122,7 @@ export const api = {
       if (params?.jobId) query.set('jobId', String(params.jobId));
       if (params?.type && params.type !== 'all') query.set('type', params.type);
       if (params?.status && params.status !== 'all') query.set('status', params.status);
-      const res = await fetch(`${BASE_URL}/drafts?${query.toString()}`, { headers: getAuthHeaders() });
-      return handleResponse<{ drafts: Draft[] }>(res);
+      return fetchWithAuth<{ drafts: Draft[] }>(`/drafts?${query.toString()}`);
     },
     generate: async (data: {
       jobId: number;
@@ -132,20 +131,16 @@ export const api = {
       customInstructions?: string;
       modelOverride?: string;
     }): Promise<{ draft: Draft; historicalDraftsCount: number; generationMeta: any }> => {
-      const res = await fetch(`${BASE_URL}/drafts/generate`, {
+      return fetchWithAuth<{ draft: Draft; historicalDraftsCount: number; generationMeta: any }>('/drafts/generate', {
         method: 'POST',
-        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       });
-      return handleResponse<{ draft: Draft; historicalDraftsCount: number; generationMeta: any }>(res);
     },
     update: async (id: number, data: { contents?: string; status?: string; atsScore?: number }): Promise<{ draft: Draft }> => {
-      const res = await fetch(`${BASE_URL}/drafts/${id}`, {
+      return fetchWithAuth<{ draft: Draft }>(`/drafts/${id}`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
         body: JSON.stringify(data),
       });
-      return handleResponse<{ draft: Draft }>(res);
     },
   },
 
@@ -154,30 +149,24 @@ export const api = {
       const query = new URLSearchParams();
       if (params?.status && params.status !== 'all') query.set('status', params.status);
       if (params?.type && params.type !== 'all') query.set('type', params.type);
-      const res = await fetch(`${BASE_URL}/nudges?${query.toString()}`, { headers: getAuthHeaders() });
-      return handleResponse<{ nudges: Nudge[] }>(res);
+      return fetchWithAuth<{ nudges: Nudge[] }>(`/nudges?${query.toString()}`);
     },
     evaluate: async (): Promise<any> => {
-      const res = await fetch(`${BASE_URL}/nudges/evaluate`, {
+      return fetchWithAuth<any>('/nudges/evaluate', {
         method: 'POST',
-        headers: getAuthHeaders(),
       });
-      return handleResponse<any>(res);
     },
     updateStatus: async (id: string, status: 'completed' | 'dismissed' | 'pending'): Promise<{ nudge: Nudge }> => {
-      const res = await fetch(`${BASE_URL}/nudges/${id}/status`, {
+      return fetchWithAuth<{ nudge: Nudge }>(`/nudges/${id}/status`, {
         method: 'PATCH',
-        headers: getAuthHeaders(),
         body: JSON.stringify({ status }),
       });
-      return handleResponse<{ nudge: Nudge }>(res);
     },
   },
 
   analytics: {
     getMetrics: async (): Promise<{ metrics: AnalyticsMetrics }> => {
-      const res = await fetch(`${BASE_URL}/analytics`, { headers: getAuthHeaders() });
-      return handleResponse<{ metrics: AnalyticsMetrics }>(res);
+      return fetchWithAuth<{ metrics: AnalyticsMetrics }>('/analytics');
     },
   },
 };

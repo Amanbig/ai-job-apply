@@ -7,6 +7,14 @@ import { AuthRequest, requireAuth } from '../middleware/auth.middleware.js';
 export const authRouter = Router();
 const JWT_SECRET = process.env.JWT_SECRET || 'super_secure_ai_job_tracker_jwt_secret_2026';
 
+const COOKIE_OPTIONS = {
+  httpOnly: true,
+  secure: process.env.NODE_ENV === 'production',
+  sameSite: 'lax' as const,
+  maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  path: '/',
+};
+
 // Register
 authRouter.post('/register', async (req, res) => {
   try {
@@ -29,6 +37,8 @@ authRouter.post('/register', async (req, res) => {
     });
 
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('token', token, COOKIE_OPTIONS);
+
     res.status(201).json({ user, token });
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -54,6 +64,8 @@ authRouter.post('/login', async (req, res) => {
     }
 
     const token = jwt.sign({ userId: user.id, email: user.email }, JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('token', token, COOKIE_OPTIONS);
+
     res.json({
       user: { id: user.id, email: user.email, name: user.name },
       token,
@@ -80,6 +92,8 @@ authRouter.post('/demo', async (req, res) => {
     }
 
     const token = jwt.sign({ userId: demoUser.id, email: demoUser.email }, JWT_SECRET, { expiresIn: '7d' });
+    res.cookie('token', token, COOKIE_OPTIONS);
+
     res.json({
       user: { id: demoUser.id, email: demoUser.email, name: demoUser.name },
       token,
@@ -87,6 +101,12 @@ authRouter.post('/demo', async (req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+// Logout (Clears HTTP-only cookie)
+authRouter.post('/logout', (req, res) => {
+  res.clearCookie('token', { path: '/' });
+  res.json({ message: 'Signed out successfully' });
 });
 
 // Current user profile
