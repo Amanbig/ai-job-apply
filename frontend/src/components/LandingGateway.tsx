@@ -12,30 +12,16 @@ import {
   Database,
   TrendingUp,
   ShieldCheck,
-  Zap
+  LogIn
 } from 'lucide-react';
-import { useAuth } from '../context/AuthContext';
 
 interface LandingGatewayProps {
   onOpenAuthModal: (mode?: 'login' | 'register') => void;
-  onQuickDemoSuccess: () => void;
 }
 
 export const LandingGateway: React.FC<LandingGatewayProps> = ({
   onOpenAuthModal,
-  onQuickDemoSuccess,
 }) => {
-  const { demoLogin, isLoading } = useAuth();
-
-  const handleQuickDemo = async () => {
-    try {
-      await demoLogin();
-      onQuickDemoSuccess();
-    } catch (err: any) {
-      alert('Demo login failed: ' + err.message);
-    }
-  };
-
   return (
     <div className="min-h-[85vh] flex flex-col justify-between">
       {/* Hero Section */}
@@ -64,29 +50,21 @@ export const LandingGateway: React.FC<LandingGatewayProps> = ({
         </p>
 
         {/* Authentication Action Buttons */}
-        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-3">
+        <div className="pt-2 flex flex-col sm:flex-row items-center justify-center gap-4">
           <button
-            onClick={handleQuickDemo}
-            disabled={isLoading}
-            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 hover:from-indigo-500 hover:to-sky-400 text-white font-semibold text-sm shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 transition duration-200 cursor-pointer disabled:opacity-50"
+            onClick={() => onOpenAuthModal('login')}
+            className="w-full sm:w-auto px-7 py-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-sky-500 hover:from-indigo-500 hover:to-sky-400 text-white font-semibold text-sm shadow-xl shadow-indigo-500/25 flex items-center justify-center gap-2 transition duration-200 cursor-pointer"
           >
-            <Zap className="w-4 h-4 text-amber-300" />
-            <span>1-Click Evaluation Access (Demo Candidate)</span>
+            <LogIn className="w-4 h-4" />
+            <span>Sign In to Dashboard</span>
             <ArrowRight className="w-4 h-4" />
           </button>
 
           <button
-            onClick={() => onOpenAuthModal('login')}
-            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-semibold text-sm transition shadow-sm"
-          >
-            Sign In with Email
-          </button>
-
-          <button
             onClick={() => onOpenAuthModal('register')}
-            className="w-full sm:w-auto px-5 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-300 border border-slate-800 font-semibold text-sm transition"
+            className="w-full sm:w-auto px-6 py-3 rounded-xl bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 font-semibold text-sm transition shadow-sm cursor-pointer"
           >
-            Create Account
+            Create Candidate Account
           </button>
         </div>
 

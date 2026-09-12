@@ -6,9 +6,6 @@ import {
   Bell,
   UploadCloud,
   BarChart3,
-  Database,
-  RefreshCw,
-  CheckCircle2,
   Cpu,
   User as UserIcon,
   LogOut,
@@ -16,12 +13,10 @@ import {
   LogIn
 } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
-import { api } from '../services/api';
 
 interface NavbarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
-  onBenchmarkLoaded: () => void;
   pendingNudgesCount: number;
   onOpenAuthModal: (mode?: 'login' | 'register') => void;
 }
@@ -29,28 +24,11 @@ interface NavbarProps {
 export const Navbar: React.FC<NavbarProps> = ({
   currentTab,
   setCurrentTab,
-  onBenchmarkLoaded,
   pendingNudgesCount,
   onOpenAuthModal,
 }) => {
-  const { user, logout, demoLogin } = useAuth();
-  const [loadingBenchmark, setLoadingBenchmark] = useState(false);
-  const [benchmarkMsg, setBenchmarkMsg] = useState<string | null>(null);
+  const { user, logout } = useAuth();
   const [showUserDropdown, setShowUserDropdown] = useState(false);
-
-  const handleLoadBenchmark = async () => {
-    try {
-      setLoadingBenchmark(true);
-      await api.jobs.loadBenchmark();
-      setBenchmarkMsg('Loaded 12 jobs & 6 drafts!');
-      onBenchmarkLoaded();
-      setTimeout(() => setBenchmarkMsg(null), 4000);
-    } catch (err: any) {
-      alert('Error loading benchmark: ' + err.message);
-    } finally {
-      setLoadingBenchmark(false);
-    }
-  };
 
   const navItems = [
     { id: 'kanban', label: 'Pipeline Board', icon: Layers },
@@ -128,24 +106,6 @@ export const Navbar: React.FC<NavbarProps> = ({
 
           {/* Right Action Area */}
           <div className="flex items-center gap-3 shrink-0">
-            {user && (
-              <button
-                onClick={handleLoadBenchmark}
-                disabled={loadingBenchmark}
-                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-700/80 transition shadow-sm hover:border-slate-600 disabled:opacity-50"
-                title="Loads 12 evaluation job postings and historical drafts"
-              >
-                {loadingBenchmark ? (
-                  <RefreshCw className="w-3.5 h-3.5 animate-spin text-indigo-400" />
-                ) : benchmarkMsg ? (
-                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                ) : (
-                  <Database className="w-3.5 h-3.5 text-indigo-400" />
-                )}
-                <span className="hidden sm:inline">{benchmarkMsg || 'Seed Evaluation Jobs'}</span>
-              </button>
-            )}
-
             {/* Authentication User Area */}
             {user ? (
               <div className="relative">
@@ -173,22 +133,11 @@ export const Navbar: React.FC<NavbarProps> = ({
                     </div>
 
                     <button
-                      onClick={async () => {
-                        await demoLogin();
-                        setShowUserDropdown(false);
-                      }}
-                      className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center gap-2 transition"
-                    >
-                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
-                      <span>Switch to Demo Profile</span>
-                    </button>
-
-                    <button
                       onClick={() => {
                         logout();
                         setShowUserDropdown(false);
                       }}
-                      className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-rose-500/10 text-rose-400 flex items-center gap-2 transition"
+                      className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-rose-500/10 text-rose-400 flex items-center gap-2 transition cursor-pointer"
                     >
                       <LogOut className="w-3.5 h-3.5" />
                       <span>Sign Out</span>

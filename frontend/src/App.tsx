@@ -115,10 +115,6 @@ function MainApp() {
       <Navbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
-        onBenchmarkLoaded={() => {
-          fetchData();
-          showToast('Loaded benchmark evaluation dataset (12 jobs & 6 drafts)!', 'success');
-        }}
         pendingNudgesCount={pendingNudgesCount}
         onOpenAuthModal={openAuthWithMode}
       />
@@ -133,9 +129,6 @@ function MainApp() {
           /* Unauthenticated Landing Gateway - Requires Login */
           <LandingGateway
             onOpenAuthModal={openAuthWithMode}
-            onQuickDemoSuccess={() => {
-              showToast('Authenticated as Demo Candidate!', 'success');
-            }}
           />
         ) : loading && applications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 space-y-3">

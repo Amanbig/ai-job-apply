@@ -18,6 +18,26 @@ async function handleResponse<T>(res: Response): Promise<T> {
   return res.json();
 }
 
+async function attemptSilentRefresh(): Promise<string | null> {
+  try {
+    const res = await fetch(`${BASE_URL}/auth/refresh`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+    });
+    if (!res.ok) return null;
+    const data = await res.json();
+    const newToken = data.accessToken || data.token;
+    if (newToken) {
+      localStorage.setItem('token', newToken);
+      return newToken;
+    }
+    return null;
+  } catch (err) {
+    return null;
+  }
+}
+
 async function fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
   const token = localStorage.getItem('token');
   const headers: HeadersInit = {
@@ -26,28 +46,44 @@ async function fetchWithAuth<T>(endpoint: string, options: RequestInit = {}): Pr
     ...(options.headers || {}),
   };
 
-  const response = await fetch(`${BASE_URL}${endpoint}`, {
+  let response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
     credentials: 'include', // Automatically transmits HTTP-only cookies in browsers
   });
+
+  // If unauthorized due to access token expiry, automatically attempt silent token refresh
+  if (response.status === 401 && endpoint !== '/auth/refresh' && endpoint !== '/auth/login' && endpoint !== '/auth/register') {
+    const refreshedToken = await attemptSilentRefresh();
+    if (refreshedToken) {
+      const retryHeaders: HeadersInit = {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${refreshedToken}`,
+        ...(options.headers || {}),
+      };
+      response = await fetch(`${BASE_URL}${endpoint}`, {
+        ...options,
+        headers: retryHeaders,
+        credentials: 'include',
+      });
+    }
+  }
 
   return handleResponse<T>(response);
 }
 
 export const api = {
   auth: {
-    demoLogin: async (): Promise<{ user: User; token: string }> => {
-      const data = await fetchWithAuth<{ user: User; token: string }>('/auth/demo', {
-        method: 'POST',
-      });
-      if (data.token) {
-        localStorage.setItem('token', data.token);
-      }
-      return data;
-    },
     getMe: async (): Promise<{ user: User }> => {
       return fetchWithAuth<{ user: User }>('/auth/me');
+    },
+    refreshToken: async (): Promise<{ user: User; accessToken: string; refreshToken: string }> => {
+      const res = await fetch(`${BASE_URL}/auth/refresh`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'include',
+      });
+      return handleResponse(res);
     },
     logout: async (): Promise<{ message: string }> => {
       const res = await fetchWithAuth<{ message: string }>('/auth/logout', {

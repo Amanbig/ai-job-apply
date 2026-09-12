@@ -7,8 +7,7 @@ interface AuthContextType {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, password: string) => Promise<void>;
-  demoLogin: () => Promise<void>;
-  logout: () => void;
+  logout: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -27,10 +26,34 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           headers['Authorization'] = `Bearer ${savedToken}`;
         }
 
-        const res = await fetch('/api/auth/me', {
+        let res = await fetch('/api/auth/me', {
           headers,
           credentials: 'include',
         });
+
+        // If access token is expired or unauthorized, attempt silent refresh using refresh token cookie
+        if (!res.ok) {
+          try {
+            const refreshRes = await fetch('/api/auth/refresh', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              credentials: 'include',
+            });
+            if (refreshRes.ok) {
+              const refreshData = await refreshRes.json();
+              const newToken = refreshData.accessToken || refreshData.token;
+              if (newToken) {
+                localStorage.setItem('token', newToken);
+                setToken(newToken);
+              }
+              setUser(refreshData.user);
+              setIsLoading(false);
+              return;
+            }
+          } catch (e) {
+            // refresh failed
+          }
+        }
 
         if (res.ok) {
           const data = await res.json();
@@ -62,9 +85,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to sign in');
 
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
+    const activeToken = data.accessToken || data.token;
+    if (activeToken) {
+      localStorage.setItem('token', activeToken);
+      setToken(activeToken);
     }
     setUser(data.user);
   };
@@ -79,25 +103,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     const data = await res.json();
     if (!res.ok) throw new Error(data.error || 'Failed to create account');
 
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
-    }
-    setUser(data.user);
-  };
-
-  const demoLogin = async () => {
-    const res = await fetch('/api/auth/demo', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      credentials: 'include',
-    });
-    const data = await res.json();
-    if (!res.ok) throw new Error(data.error || 'Demo sign in failed');
-
-    if (data.token) {
-      localStorage.setItem('token', data.token);
-      setToken(data.token);
+    const activeToken = data.accessToken || data.token;
+    if (activeToken) {
+      localStorage.setItem('token', activeToken);
+      setToken(activeToken);
     }
     setUser(data.user);
   };
@@ -117,7 +126,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   return (
-    <AuthContext.Provider value={{ user, token, isLoading, login, register, demoLogin, logout }}>
+    <AuthContext.Provider value={{ user, token, isLoading, login, register, logout }}>
       {children}
     </AuthContext.Provider>
   );

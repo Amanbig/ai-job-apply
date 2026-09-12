@@ -15,9 +15,9 @@ const JWT_SECRET = process.env.JWT_SECRET || 'super_secure_ai_job_tracker_jwt_se
 export async function requireAuth(req: AuthRequest, res: Response, next: NextFunction): Promise<void> {
   let token: string | undefined;
 
-  // 1. Prefer secure HTTP-only cookie (web browser sessions)
-  if (req.cookies && req.cookies.token) {
-    token = req.cookies.token;
+  // 1. Prefer secure HTTP-only cookie (accessToken or token)
+  if (req.cookies && (req.cookies.accessToken || req.cookies.token)) {
+    token = req.cookies.accessToken || req.cookies.token;
   }
   // 2. Fall back to Authorization Bearer header (CLI, curl, evaluation test scripts)
   else if (req.headers.authorization && req.headers.authorization.startsWith('Bearer ')) {
@@ -27,6 +27,7 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
   if (!token) {
     res.status(401).json({
       error: 'Unauthorized: Authentication required. Please sign in or provide a valid authorization token.',
+      code: 'UNAUTHORIZED',
     });
     return;
   }
@@ -39,15 +40,26 @@ export async function requireAuth(req: AuthRequest, res: Response, next: NextFun
     });
 
     if (!user) {
-      res.status(401).json({ error: 'Unauthorized: User associated with token no longer exists.' });
+      res.status(401).json({
+        error: 'Unauthorized: User associated with token no longer exists.',
+        code: 'USER_NOT_FOUND',
+      });
       return;
     }
 
     req.user = user;
     return next();
   } catch (err: any) {
+    if (err.name === 'TokenExpiredError') {
+      res.status(401).json({
+        error: 'Access token expired',
+        code: 'TOKEN_EXPIRED',
+      });
+      return;
+    }
     res.status(401).json({
-      error: 'Unauthorized: Invalid or expired authentication token.',
+      error: 'Unauthorized: Invalid authentication token.',
+      code: 'INVALID_TOKEN',
       details: err.message,
     });
     return;
