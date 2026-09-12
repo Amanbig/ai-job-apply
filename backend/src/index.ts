@@ -2,6 +2,8 @@ import express from 'express';
 import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import dotenv from 'dotenv';
+import path from 'path';
+import fs from 'fs';
 import { authRouter } from './routes/auth.routes.js';
 import { jobsRouter } from './routes/jobs.routes.js';
 import { applicationsRouter } from './routes/applications.routes.js';
@@ -46,6 +48,27 @@ app.use('/api/applications', applicationsRouter);
 app.use('/api/drafts', draftsRouter);
 app.use('/api/nudges', nudgesRouter);
 app.use('/api/analytics', analyticsRouter);
+
+// Serve compiled frontend SPA if available (Docker production or local build)
+const candidateDirs = [
+  path.resolve(process.cwd(), 'public'),
+  path.resolve(process.cwd(), 'dist/public'),
+  path.resolve(process.cwd(), '../frontend/dist'),
+  path.resolve(process.cwd(), 'frontend/dist'),
+  path.resolve(process.cwd(), '../public'),
+];
+const staticDir = candidateDirs.find((dir) => fs.existsSync(dir) && fs.existsSync(path.join(dir, 'index.html')));
+
+if (staticDir) {
+  console.log(`📦 Serving frontend static build from: ${staticDir}`);
+  app.use(express.static(staticDir));
+  app.get('*', (req, res, next) => {
+    if (req.path.startsWith('/api') || req.path === '/health') {
+      return next();
+    }
+    res.sendFile(path.join(staticDir, 'index.html'));
+  });
+}
 
 // Global Error Handler
 app.use((err: any, req: express.Request, res: express.Response, next: express.NextFunction) => {

@@ -169,11 +169,11 @@ export const AddApplicationModal: React.FC<AddApplicationModalProps> = ({
               <select
                 value={type}
                 onChange={(e) => setType(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer [&>option]:bg-slate-900 [&>option]:text-slate-100"
               >
-                <option value="full-time">Full-time</option>
-                <option value="contract">Contract</option>
-                <option value="part-time">Part-time</option>
+                <option value="full-time" className="bg-slate-900 text-slate-100">Full-time</option>
+                <option value="contract" className="bg-slate-900 text-slate-100">Contract</option>
+                <option value="part-time" className="bg-slate-900 text-slate-100">Part-time</option>
               </select>
             </div>
 
@@ -182,12 +182,12 @@ export const AddApplicationModal: React.FC<AddApplicationModalProps> = ({
               <select
                 value={status}
                 onChange={(e) => setStatus(e.target.value)}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold"
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-2 text-xs text-slate-200 focus:outline-none focus:border-indigo-500 cursor-pointer font-semibold [&>option]:bg-slate-900 [&>option]:text-slate-100"
               >
-                <option value="Applied">Applied</option>
-                <option value="Interview">Interview</option>
-                <option value="Offer">Offer</option>
-                <option value="Reject">Reject</option>
+                <option value="Applied" className="bg-slate-900 text-slate-100">Applied</option>
+                <option value="Interview" className="bg-slate-900 text-slate-100">Interview</option>
+                <option value="Offer" className="bg-slate-900 text-slate-100">Offer</option>
+                <option value="Reject" className="bg-slate-900 text-slate-100">Reject</option>
               </select>
             </div>
           </div>

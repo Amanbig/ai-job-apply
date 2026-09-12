@@ -186,32 +186,32 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
 
           <div className="flex flex-wrap items-center gap-3">
             {/* Model Selector */}
-            <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+            <div className="flex items-center gap-2 bg-slate-950 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
               <Cpu className="w-4 h-4 text-indigo-400" />
               <span className="text-xs text-slate-400">Model:</span>
               <select
                 value={selectedModel}
                 onChange={(e) => setSelectedModel(e.target.value)}
-                className="bg-transparent text-xs text-slate-200 font-medium focus:outline-none cursor-pointer"
+                className="bg-slate-950 text-xs text-slate-200 font-medium focus:outline-none cursor-pointer [&>option]:bg-slate-900 [&>option]:text-slate-100"
               >
-                <option value="gemini-2.5-flash">Gemini 2.5 Flash (Latest)</option>
-                <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
-                <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
-                <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                <option value="offline-fallback">Contextual Heuristic (Offline)</option>
+                <option value="gemini-2.5-flash" className="bg-slate-900 text-slate-100">Gemini 2.5 Flash (Latest)</option>
+                <option value="gemini-2.0-flash" className="bg-slate-900 text-slate-100">Gemini 2.0 Flash</option>
+                <option value="gemini-1.5-flash" className="bg-slate-900 text-slate-100">Gemini 1.5 Flash</option>
+                <option value="gemini-1.5-pro" className="bg-slate-900 text-slate-100">Gemini 1.5 Pro</option>
+                <option value="offline-fallback" className="bg-slate-900 text-slate-100">Contextual Heuristic (Offline)</option>
               </select>
             </div>
 
             {/* Target Job Selector */}
-            <div className="flex items-center gap-2 bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
+            <div className="flex items-center gap-2 bg-slate-950 dark:bg-slate-950 px-3 py-1.5 rounded-lg border border-slate-800">
               <Briefcase className="w-4 h-4 text-indigo-400" />
               <select
                 value={activeJobId}
                 onChange={(e) => setActiveJobId(Number(e.target.value))}
-                className="bg-transparent text-xs text-slate-200 font-medium focus:outline-none cursor-pointer max-w-[220px] truncate"
+                className="bg-slate-950 text-xs text-slate-200 font-medium focus:outline-none cursor-pointer max-w-[240px] truncate [&>option]:bg-slate-900 [&>option]:text-slate-100"
               >
                 {jobs.map((job) => (
-                  <option key={job.id} value={job.id}>
+                  <option key={job.id} value={job.id} className="bg-slate-900 text-slate-100">
                     #{job.id} - {job.company} ({job.role})
                   </option>
                 ))}

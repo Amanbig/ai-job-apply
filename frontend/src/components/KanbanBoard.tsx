@@ -139,26 +139,26 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
 
           {/* Search Input */}
           <div className="relative">
-            <Search className="w-4 h-4 text-slate-500 absolute left-3 top-2.5" />
+            <Search className="w-4 h-4 text-slate-400 dark:text-slate-500 absolute left-3 top-2.5" />
             <input
               type="text"
               placeholder="Search company, role, tech stack..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-slate-950 border border-slate-800 rounded-lg pl-9 pr-3.5 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-60 sm:w-72 transition"
+              className="bg-white dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg pl-9 pr-3.5 py-1.5 text-xs text-slate-900 dark:text-slate-200 placeholder-slate-400 dark:placeholder-slate-500 focus:outline-none focus:border-indigo-500 w-60 sm:w-72 transition shadow-2xs"
             />
           </div>
 
           {/* Filter Pills */}
-          <div className="flex items-center gap-1.5 bg-slate-950 border border-slate-800 rounded-lg p-1 text-xs">
+          <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 rounded-lg p-1 text-xs">
             {['all', 'full-time', 'contract'].map((t) => (
               <button
                 key={t}
                 onClick={() => setTypeFilter(t)}
-                className={`px-2.5 py-1 rounded-md capitalize font-medium transition ${
+                className={`px-2.5 py-1 rounded-md capitalize font-medium transition cursor-pointer ${
                   typeFilter === t
                     ? 'bg-indigo-600 text-white shadow-xs'
-                    : 'text-slate-400 hover:text-slate-200'
+                    : 'text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-200'
                 }`}
               >
                 {t === 'all' ? 'All Types' : t}
@@ -169,22 +169,22 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           {urgentCount > 0 && (
             <button
               onClick={() => setUrgencyOnly(!urgencyOnly)}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition ${
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-semibold transition cursor-pointer ${
                 urgencyOnly
-                  ? 'bg-amber-500/20 text-amber-300 border-amber-500/50 shadow-sm'
-                  : 'bg-slate-950 text-amber-400 border-slate-800 hover:border-amber-500/30'
+                  ? 'bg-amber-500/20 text-amber-700 dark:text-amber-300 border-amber-500/50 shadow-sm'
+                  : 'bg-white dark:bg-slate-950 text-amber-600 dark:text-amber-400 border-slate-200 dark:border-slate-800 hover:border-amber-500/30'
               }`}
             >
-              <AlertCircle className="w-3.5 h-3.5 text-amber-400 animate-pulse" />
+              <AlertCircle className="w-3.5 h-3.5 text-amber-500 dark:text-amber-400 animate-pulse" />
               <span>Needs Follow-up ({urgentCount})</span>
             </button>
           )}
         </div>
 
-        <div className="flex items-center justify-between lg:justify-end gap-3 text-xs text-slate-400">
-          <span>Active Pipeline: <strong className="text-white font-mono">{filteredApps.length}</strong> applications</span>
-          <span className="w-1 h-1 rounded-full bg-slate-700"></span>
-          <span className="text-emerald-400 flex items-center gap-1 font-medium">
+        <div className="flex items-center justify-between lg:justify-end gap-3 text-xs text-slate-500 dark:text-slate-400">
+          <span>Active Pipeline: <strong className="text-slate-900 dark:text-white font-mono">{filteredApps.length}</strong> applications</span>
+          <span className="w-1 h-1 rounded-full bg-slate-300 dark:bg-slate-700"></span>
+          <span className="text-emerald-600 dark:text-emerald-400 flex items-center gap-1 font-medium">
             <CheckCircle2 className="w-3.5 h-3.5" /> State Persistent
           </span>
         </div>
@@ -198,13 +198,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
           return (
             <div
               key={stage.id}
-              className="flex flex-col bg-slate-900/40 rounded-xl border border-slate-800 overflow-hidden min-h-[620px] shadow-sm hover:border-slate-750 transition"
+              className="kanban-column flex flex-col bg-slate-100/90 dark:bg-slate-900/40 rounded-xl border border-slate-200 dark:border-slate-800 overflow-hidden min-h-[620px] shadow-xs hover:border-slate-300 dark:hover:border-slate-750 transition"
             >
               {/* Stage Header */}
-              <div className={`p-3.5 bg-slate-900/80 border-b ${stage.headerBorder} flex items-center justify-between`}>
+              <div className={`kanban-stage-header p-3.5 bg-slate-200/80 dark:bg-slate-900/80 border-b ${stage.headerBorder} flex items-center justify-between`}>
                 <div className="flex items-center gap-2">
                   <span className={`w-2.5 h-2.5 rounded-full ${stage.dotColor}`}></span>
-                  <h3 className="font-semibold text-sm text-white">{stage.title}</h3>
+                  <h3 className="font-semibold text-sm text-slate-800 dark:text-white">{stage.title}</h3>
                   <span className={`px-2 py-0.5 text-xs font-bold rounded-full ${stage.badgeClass}`}>
                     {stageApps.length}
                   </span>
@@ -214,12 +214,12 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
               {/* Stage Applications Cards */}
               <div className="p-3 space-y-3 flex-1 overflow-y-auto">
                 {stageApps.length === 0 ? (
-                  <div className="text-center py-16 text-xs text-slate-500 border border-dashed border-slate-800/80 rounded-xl space-y-2">
+                  <div className="text-center py-16 text-xs text-slate-400 dark:text-slate-500 border border-dashed border-slate-300 dark:border-slate-800/80 rounded-xl space-y-2">
                     <p>No active entries in {stage.title}</p>
                     {applications.length === 0 && onSeedBenchmark && (
                       <button
                         onClick={onSeedBenchmark}
-                        className="px-3 py-1 rounded bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-400 border border-indigo-500/30 text-[11px] font-medium"
+                        className="px-3 py-1 rounded bg-indigo-50 dark:bg-indigo-600/20 hover:bg-indigo-100 dark:hover:bg-indigo-600/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-500/30 text-[11px] font-medium"
                       >
                         Load Evaluation Dataset
                       </button>
@@ -237,19 +237,19 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                     return (
                       <div
                         key={app.id}
-                        className={`group bg-slate-900/90 hover:bg-slate-850 border rounded-xl p-3.5 transition-all shadow-sm hover:shadow-md relative ${
-                          isInactive ? 'border-amber-500/40' : 'border-slate-800 hover:border-slate-700'
+                        className={`kanban-card group bg-white dark:bg-slate-900/90 hover:bg-slate-50 dark:hover:bg-slate-850 border rounded-xl p-3.5 transition-all shadow-xs hover:shadow-md relative ${
+                          isInactive ? 'border-amber-500/50 dark:border-amber-500/40' : 'border-slate-200 dark:border-slate-800 hover:border-slate-300 dark:hover:border-slate-700'
                         }`}
                       >
                         {/* Top Bar: Company & Type */}
                         <div className="flex items-start justify-between gap-2 mb-1.5">
-                          <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-400 flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 text-xs font-semibold text-indigo-600 dark:text-indigo-400 flex-1 min-w-0">
                             <Building className="w-3.5 h-3.5 shrink-0" />
-                            <span className="font-bold text-slate-200 group-hover:text-indigo-300 transition truncate">
+                            <span className="font-bold text-slate-800 dark:text-slate-200 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition truncate">
                               {job.company}
                             </span>
                           </div>
-                          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-md bg-slate-800/90 text-slate-300 border border-slate-700 shrink-0">
+                          <span className="text-[10px] uppercase font-mono px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800/90 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 shrink-0">
                             {job.type}
                           </span>
                         </div>
@@ -257,7 +257,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         {/* Role Title */}
                         <h4
                           onClick={() => onViewDetails(app)}
-                          className="font-semibold text-sm text-slate-100 group-hover:text-indigo-300 transition-colors cursor-pointer mb-2 line-clamp-1"
+                          className="font-semibold text-sm text-slate-900 dark:text-slate-100 group-hover:text-indigo-600 dark:group-hover:text-indigo-300 transition-colors cursor-pointer mb-2 line-clamp-1"
                           title={job.role}
                         >
                           {job.role}
@@ -293,13 +293,13 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             {job.techStack.slice(0, 3).map((t, i) => (
                               <span
                                 key={i}
-                                className="text-[10px] px-1.5 py-0.2 rounded bg-slate-800/90 text-slate-400 border border-slate-700/50"
+                                className="text-[10px] px-1.5 py-0.2 rounded bg-slate-100 dark:bg-slate-800/90 text-slate-700 dark:text-slate-400 border border-slate-200 dark:border-slate-700/50"
                               >
                                 {t}
                               </span>
                             ))}
                             {job.techStack.length > 3 && (
-                              <span className="text-[10px] px-1 py-0.2 text-slate-500 font-mono">
+                              <span className="text-[10px] px-1 py-0.2 text-slate-400 dark:text-slate-500 font-mono">
                                 +{job.techStack.length - 3}
                               </span>
                             )}
@@ -307,19 +307,19 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                         )}
 
                         {/* Metadata Footer */}
-                        <div className="flex items-center justify-between text-[11px] text-slate-400 border-t border-slate-800/80 pt-2 mb-2.5">
-                          <span className="flex items-center gap-1 text-slate-500 font-mono text-[10px]">
+                        <div className="flex items-center justify-between text-[11px] text-slate-500 dark:text-slate-400 border-t border-slate-200 dark:border-slate-800/80 pt-2 mb-2.5">
+                          <span className="flex items-center gap-1 text-slate-400 dark:text-slate-500 font-mono text-[10px]">
                             <Clock className="w-3 h-3" />
                             {daysAgo}
                           </span>
                           <div className="flex items-center gap-1.5">
                             {hasCoverLetter && (
-                              <span className="flex items-center gap-0.5 text-emerald-400 text-[10px]" title="Tailored Cover Letter Attached">
+                              <span className="flex items-center gap-0.5 text-emerald-600 dark:text-emerald-400 text-[10px]" title="Tailored Cover Letter Attached">
                                 <FileText className="w-3 h-3" /> Letter
                               </span>
                             )}
                             {hasFollowUp && (
-                              <span className="flex items-center gap-0.5 text-sky-400 text-[10px]" title="Follow-up email available">
+                              <span className="flex items-center gap-0.5 text-sky-600 dark:text-sky-400 text-[10px]" title="Follow-up email available">
                                 <Send className="w-3 h-3" /> Email
                               </span>
                             )}
@@ -335,15 +335,15 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                                 app.status === 'Applied' && isInactive ? 'follow_up_email' : 'cover_letter'
                               )
                             }
-                            className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-indigo-600/20 hover:bg-indigo-600/30 text-indigo-300 border border-indigo-500/30 text-xs font-semibold transition"
+                            className="flex-1 flex items-center justify-center gap-1 py-1.5 px-2 rounded-lg bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-600/20 dark:hover:bg-indigo-600/30 text-indigo-700 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-500/30 text-xs font-semibold transition cursor-pointer"
                           >
-                            <Sparkles className="w-3 h-3 text-indigo-400" />
+                            <Sparkles className="w-3 h-3 text-indigo-500 dark:text-indigo-400" />
                             <span>AI Studio</span>
                           </button>
 
                           <button
                             onClick={() => onViewDetails(app)}
-                            className="p-1.5 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-300 border border-slate-700 transition"
+                            className="p-1.5 rounded-lg bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 border border-slate-200 dark:border-slate-700 transition cursor-pointer"
                             title="View history & audit log"
                           >
                             <History className="w-3.5 h-3.5" />
@@ -354,7 +354,7 @@ export const KanbanBoard: React.FC<KanbanBoardProps> = ({
                             value={app.status}
                             disabled={transitioningId === app.id}
                             onChange={(e) => handleQuickTransition(app.id, e.target.value)}
-                            className="text-[11px] bg-slate-800 hover:bg-slate-700 text-slate-200 font-medium rounded-lg border border-slate-700 px-2 py-1.5 focus:outline-none cursor-pointer"
+                            className="text-[11px] bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-800 dark:text-slate-200 font-medium rounded-lg border border-slate-200 dark:border-slate-700 px-2 py-1.5 focus:outline-none cursor-pointer [&>option]:bg-white dark:[&>option]:bg-slate-900 [&>option]:text-slate-800 dark:[&>option]:text-slate-100"
                             title="Change pipeline phase"
                           >
                             <option value="Applied">Applied</option>
