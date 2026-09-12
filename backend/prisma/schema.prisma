@@ -1,0 +1,106 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String        @id @default(uuid())
+  email        String        @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  applications Application[]
+
+  @@map("users")
+}
+
+model JobPosting {
+  id           Int           @id
+  from         DateTime
+  to           DateTime
+  type         String        // 'full-time' | 'contract' | 'part-time' | 'internship'
+  description  String        @db.Text
+  company      String
+  role         String
+  location     String?
+  techStack    String[]      @default([])
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+  applications Application[]
+  drafts       Draft[]
+
+  @@map("job_postings")
+}
+
+model Application {
+  id            String                @id @default(uuid())
+  userId        String
+  user          User                  @relation(fields: [userId], references: [id], onDelete: Cascade)
+  jobPostingId  Int
+  jobPosting    JobPosting            @relation(fields: [jobPostingId], references: [id], onDelete: Cascade)
+  status        String                @default("Applied") // 'Applied' | 'Interview' | 'Offer' | 'Reject'
+  appliedDate   DateTime              @default(now())
+  notes         String?               @db.Text
+  interviewDate DateTime?
+  salaryOffer   String?
+  createdAt     DateTime              @default(now())
+  updatedAt     DateTime              @updatedAt
+
+  drafts        Draft[]
+  nudges        Nudge[]
+  statusLogs    StatusTransitionLog[]
+
+  @@unique([userId, jobPostingId])
+  @@map("applications")
+}
+
+model Draft {
+  id            Int          @id
+  jobId         Int
+  jobPosting    JobPosting   @relation(fields: [jobId], references: [id], onDelete: Cascade)
+  applicationId String?
+  application   Application? @relation(fields: [applicationId], references: [id], onDelete: SetNull)
+  type          String       // 'cover_letter' | 'follow_up_email'
+  contents      String       @db.Text
+  status        String       @default("draft") // 'draft' | 'sent' | 'reviewed'
+  modelUsed     String?
+  atsScore      Int?
+  analysis      Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("drafts")
+}
+
+model Nudge {
+  id            String       @id @default(uuid())
+  applicationId String
+  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  type          String       // 'follow_up_reminder' | 'prep_interview' | 'offer_decision' | 'deadline_warning'
+  scheduledDate DateTime
+  status        String       @default("pending") // 'pending' | 'triggered' | 'dismissed' | 'completed'
+  message       String       @db.Text
+  triggerReason String
+  actionPayload Json?
+  createdAt     DateTime     @default(now())
+  updatedAt     DateTime     @updatedAt
+
+  @@map("nudges")
+}
+
+model StatusTransitionLog {
+  id            String       @id @default(uuid())
+  applicationId String
+  application   Application  @relation(fields: [applicationId], references: [id], onDelete: Cascade)
+  fromStatus    String
+  toStatus      String
+  changedAt     DateTime     @default(now())
+  note          String?
+
+  @@map("status_transition_logs")
+}

@@ -1,0 +1,11 @@
+id, from, to, type, description
+1, 2026-06-01, 2026-06-30, full-time, Senior Backend Engineer - Python, Bengaluru. Lead distributed microservices, asynchronous job queues, and REST/gRPC APIs using Python, FastAPI, PostgreSQL, and Redis.
+2, 2026-06-10, 2026-07-10, contract, Data Platform Engineer - streaming pipelines, Remote. Real-time telemetry processing using Apache Kafka, Apache Flink, PySpark, and Google Cloud BigQuery.
+3, 2026-06-15, 2026-07-15, full-time, Staff AI/ML Platform Engineer, Hyderabad. Architect GenAI infrastructure, LLM guardrails, and vector search embeddings index utilizing Vertex AI, LangChain, and Pinecone.
+4, 2026-06-05, 2026-07-05, contract, Full Stack Cloud Architect (React + Node + GCP), Bengaluru. Serverless Cloud Run microservices with real-time WebSockets and high-concurrency event handling.
+5, 2026-06-18, 2026-07-18, full-time, DevOps & Site Reliability Engineer (SRE), Pune. Terraform IaC, Kubernetes ingress traffic shaping, Prometheus observability, and CI/CD pipelines.
+6, 2026-06-20, 2026-07-20, full-time, Lead Frontend Systems Engineer - Next.js/Tailwind, Mumbai. Accessible design systems and offline-first PWA dashboard for fintech trading clients.
+7, 2026-06-12, 2026-07-12, contract, Distributed Systems Architect - Go / Distributed Consensus, Remote. Low-latency transaction engine processing 100k TPS with Raft consensus, gRPC, and RocksDB.
+8, 2026-06-22, 2026-07-22, full-time, Cybersecurity Threat Intelligence & AppSec Engineer, Gurugram. Automated SAST/DAST pipelines and cloud security posture management on GCP.
+9, 2026-06-25, 2026-07-25, part-time, Data Scientist - Predictive Career Analytics & NLP, Bengaluru. Predictive attrition and job match recommendation models using transformers and statistical inference.
+10, 2026-06-08, 2026-07-08, full-time, Principal Infrastructure Engineer - Kubernetes & Mesh, Remote. Enterprise cloud transformation, Istio service mesh rollout, and multi-region failover automation.
