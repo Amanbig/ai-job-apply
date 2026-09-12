@@ -14,7 +14,10 @@ import {
   Cpu,
   Download,
   Share2,
-  ThumbsUp
+  ThumbsUp,
+  Hash,
+  Clock,
+  Sliders
 } from 'lucide-react';
 import { JobPosting, Draft } from '../types';
 
@@ -23,6 +26,7 @@ interface AIDraftStudioProps {
   selectedJobId?: number;
   initialType?: 'cover_letter' | 'follow_up_email';
   onDraftSaved: () => void;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
@@ -30,14 +34,15 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
   selectedJobId,
   initialType = 'cover_letter',
   onDraftSaved,
+  showToast,
 }) => {
   const [activeJobId, setActiveJobId] = useState<number>(selectedJobId || (jobs[0]?.id ?? 1));
   const [draftType, setDraftType] = useState<'cover_letter' | 'follow_up_email'>(initialType);
   const [selectedModel, setSelectedModel] = useState<string>('gemini-2.5-flash');
+  const [tone, setTone] = useState<'professional' | 'technical' | 'conversational'>('professional');
   const [customInstructions, setCustomInstructions] = useState<string>('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [copied, setCopied] = useState(false);
-  const [savedMsg, setSavedMsg] = useState(false);
 
   // Generated draft state
   const [activeDraft, setActiveDraft] = useState<Draft | null>(null);
@@ -59,7 +64,6 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
     }
   }, [initialType]);
 
-  // Load existing drafts for current job and candidate history
   useEffect(() => {
     loadJobDrafts(activeJobId);
   }, [activeJobId]);
@@ -67,7 +71,6 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
   const loadJobDrafts = async (jobId: number) => {
     try {
       setLoadingHistory(true);
-      // Fetch drafts for this job
       const res = await fetch(`/api/drafts?jobId=${jobId}`, {
         headers: { 'x-demo-user': 'true' },
       });
@@ -85,7 +88,6 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
         setAnalysis(null);
       }
 
-      // Fetch candidate all historical drafts for few-shot view
       const allRes = await fetch('/api/drafts', {
         headers: { 'x-demo-user': 'true' },
       });
@@ -101,13 +103,18 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
   const handleGenerate = async () => {
     try {
       setIsGenerating(true);
+      const combinedInstructions = [
+        tone !== 'professional' ? `Tone: ${tone}` : '',
+        customInstructions,
+      ].filter(Boolean).join('. ');
+
       const res = await fetch('/api/drafts/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json', 'x-demo-user': 'true' },
         body: JSON.stringify({
           jobId: activeJobId,
           type: draftType,
-          customInstructions,
+          customInstructions: combinedInstructions,
           modelOverride: selectedModel,
         }),
       });
@@ -119,6 +126,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
         setAtsScore(data.generationMeta?.atsScore || 92);
         setAnalysis(data.generationMeta?.analysis);
         onDraftSaved();
+        if (showToast) showToast('Generated tailored draft successfully!', 'success');
       }
     } catch (err: any) {
       alert('Generation error: ' + err.message);
@@ -142,9 +150,8 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
       const data = await res.json();
       if (data.draft) {
         setActiveDraft(data.draft);
-        setSavedMsg(true);
-        setTimeout(() => setSavedMsg(false), 3000);
         onDraftSaved();
+        if (showToast) showToast(`Draft updated & marked as ${newStatus || activeDraft.status}!`, 'success');
       }
     } catch (err: any) {
       alert('Failed to save draft: ' + err.message);
@@ -154,6 +161,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
   const handleCopy = () => {
     navigator.clipboard.writeText(draftContent);
     setCopied(true);
+    if (showToast) showToast('Draft copied to clipboard!', 'info');
     setTimeout(() => setCopied(false), 2000);
   };
 
@@ -167,12 +175,15 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
     document.body.removeChild(element);
   };
 
+  const wordCount = draftContent ? draftContent.trim().split(/\s+/).length : 0;
+  const readingTimeSec = Math.ceil((wordCount / 200) * 60);
+
   const currentJob = jobs.find((j) => j.id === activeJobId) || jobs[0];
 
   return (
     <div className="space-y-6">
-      {/* Studio Header & Model Configuration */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
+      {/* Studio Header & Configuration Controls */}
+      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-sm backdrop-blur-md">
         <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
@@ -201,7 +212,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
                 <option value="gemini-2.0-flash">Gemini 2.0 Flash</option>
                 <option value="gemini-1.5-flash">Gemini 1.5 Flash</option>
                 <option value="gemini-1.5-pro">Gemini 1.5 Pro</option>
-                <option value="offline-fallback">Contextual Fallback (Offline)</option>
+                <option value="offline-fallback">Contextual Heuristic (Offline)</option>
               </select>
             </div>
 
@@ -227,7 +238,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
                 onClick={() => setDraftType('cover_letter')}
                 className={`px-3 py-1 rounded-md font-medium transition ${
                   draftType === 'cover_letter'
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -237,7 +248,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
                 onClick={() => setDraftType('follow_up_email')}
                 className={`px-3 py-1 rounded-md font-medium transition ${
                   draftType === 'follow_up_email'
-                    ? 'bg-indigo-600 text-white shadow-sm'
+                    ? 'bg-indigo-600 text-white shadow-xs'
                     : 'text-slate-400 hover:text-white'
                 }`}
               >
@@ -285,24 +296,24 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
             </div>
           )}
 
-          {/* Historical Drafts Memory Accordion / List */}
+          {/* Historical Drafts Memory List */}
           <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-1.5">
                 <History className="w-4 h-4 text-indigo-400" />
                 <h4 className="text-xs font-semibold text-white uppercase tracking-wider">
-                  Historical Drafts Memory
+                  Historical Memory Context
                 </h4>
               </div>
               <span className="text-[11px] font-mono text-slate-400">
-                {historicalDrafts.length} in context
+                {historicalDrafts.length} drafts indexed
               </span>
             </div>
             <p className="text-[11px] text-slate-400">
               The AI references these past high-converting entries to mirror your professional voice and key architectural wins.
             </p>
 
-            <div className="space-y-2 max-h-60 overflow-y-auto pr-1">
+            <div className="space-y-2 max-h-52 overflow-y-auto pr-1">
               {historicalDrafts.slice(0, 4).map((hDraft) => (
                 <div
                   key={hDraft.id}
@@ -324,25 +335,47 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
             </div>
           </div>
 
-          {/* Custom Prompt Note */}
-          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-2">
-            <label className="text-xs font-medium text-slate-300 block">
-              Special Generation Instructions (Optional)
-            </label>
-            <textarea
-              value={customInstructions}
-              onChange={(e) => setCustomInstructions(e.target.value)}
-              placeholder="e.g. Highlight distributed caching benchmarks, mention 42% query latency reduction..."
-              rows={2}
-              className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
-            />
+          {/* Tone & Custom Prompt Note */}
+          <div className="bg-slate-900/50 border border-slate-800 rounded-xl p-4 space-y-3">
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-300 flex items-center gap-1.5">
+                <Sliders className="w-3.5 h-3.5 text-indigo-400" />
+                <span>Target Tone</span>
+              </label>
+              <div className="grid grid-cols-3 gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 text-[11px]">
+                {(['professional', 'technical', 'conversational'] as const).map((t) => (
+                  <button
+                    key={t}
+                    onClick={() => setTone(t)}
+                    className={`py-1 rounded capitalize font-medium transition ${
+                      tone === t ? 'bg-indigo-600 text-white' : 'text-slate-400 hover:text-white'
+                    }`}
+                  >
+                    {t}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-medium text-slate-300 block">
+                Focus Directives (Optional)
+              </label>
+              <textarea
+                value={customInstructions}
+                onChange={(e) => setCustomInstructions(e.target.value)}
+                placeholder="e.g. Emphasize low-latency gRPC APIs, mention scaling to 250k events/sec..."
+                rows={2}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500"
+              />
+            </div>
           </div>
 
           {/* Generate Action Button */}
           <button
             onClick={handleGenerate}
             disabled={isGenerating}
-            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-sm font-semibold shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
+            className="w-full py-2.5 px-4 rounded-xl bg-gradient-to-r from-indigo-600 to-indigo-500 hover:from-indigo-500 hover:to-indigo-400 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 flex items-center justify-center gap-2 transition disabled:opacity-50 cursor-pointer"
           >
             {isGenerating ? (
               <>
@@ -400,7 +433,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
                   className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 transition disabled:opacity-40"
                 >
                   <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400" />
-                  <span>{savedMsg ? 'Saved!' : 'Save & Mark Reviewed'}</span>
+                  <span>Mark Reviewed</span>
                 </button>
 
                 <button
@@ -409,9 +442,27 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
                   className="flex items-center gap-1 px-3 py-1 text-xs font-medium rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition disabled:opacity-40"
                 >
                   <Send className="w-3.5 h-3.5" />
-                  <span>Mark as Sent</span>
+                  <span>Mark Sent</span>
                 </button>
               </div>
+            </div>
+
+            {/* Content Stats Bar */}
+            <div className="flex items-center justify-between text-[11px] text-slate-500">
+              <div className="flex items-center gap-3 font-mono">
+                <span className="flex items-center gap-1">
+                  <Hash className="w-3 h-3" /> {wordCount} words ({draftContent.length} chars)
+                </span>
+                <span>•</span>
+                <span className="flex items-center gap-1">
+                  <Clock className="w-3 h-3" /> ~{readingTimeSec}s read
+                </span>
+              </div>
+              {activeDraft?.modelUsed && (
+                <span className="text-slate-400">
+                  Synthesized via: <strong className="text-indigo-400 font-mono">{activeDraft.modelUsed}</strong>
+                </span>
+              )}
             </div>
 
             {/* Editable Content Canvas */}
@@ -419,13 +470,13 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
               <textarea
                 value={draftContent}
                 onChange={(e) => setDraftContent(e.target.value)}
-                placeholder="Click 'Generate Contextual Draft' to synthesize a tailored cover letter or follow-up email, or start typing here..."
-                rows={14}
-                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-4 text-sm text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 leading-relaxed font-sans resize-y"
+                placeholder="Click 'Generate Contextual Draft' to synthesize a tailored cover letter or follow-up email, or write your draft here..."
+                rows={13}
+                className="w-full bg-slate-950 border border-slate-800 rounded-lg p-4 text-xs text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 leading-relaxed font-sans resize-y shadow-inner"
               />
             </div>
 
-            {/* ATS Score & Strategic Insights Panel */}
+            {/* ATS Score & Keyword Alignment Widget */}
             {analysis && (
               <div className="bg-slate-950/70 border border-slate-800 rounded-lg p-4 space-y-3">
                 <div className="flex items-center justify-between">
@@ -452,7 +503,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
                     <ul className="space-y-1">
                       {analysis.strengths?.map((s: string, i: number) => (
                         <li key={i} className="flex items-center gap-1.5 text-slate-300">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400"></span>
+                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 shrink-0"></span>
                           <span>{s}</span>
                         </li>
                       ))}
@@ -460,7 +511,7 @@ export const AIDraftStudio: React.FC<AIDraftStudioProps> = ({
                   </div>
 
                   <div>
-                    <span className="text-slate-400 block mb-1">Identified Focus Keywords:</span>
+                    <span className="text-slate-400 block mb-1">Identified Technical Keywords:</span>
                     <div className="flex flex-wrap gap-1">
                       {analysis.matchedKeywords?.map((k: string, i: number) => (
                         <span

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { AuthProvider, useAuth } from './context/AuthContext';
 import { Navbar } from './components/Navbar';
 import { KanbanBoard } from './components/KanbanBoard';
 import { AIDraftStudio } from './components/AIDraftStudio';
@@ -6,10 +7,13 @@ import { NudgeCenter } from './components/NudgeCenter';
 import { IngestionWizard } from './components/IngestionWizard';
 import { AnalyticsDashboard } from './components/AnalyticsDashboard';
 import { JobDetailModal } from './components/JobDetailModal';
+import { AuthModal } from './components/AuthModal';
+import { ToastContainer, ToastMessage } from './components/Toast';
 import { api } from './services/api';
 import { Application, JobPosting, Nudge, AnalyticsMetrics } from './types';
 
-export function App() {
+function MainApp() {
+  const { user } = useAuth();
   const [currentTab, setCurrentTab] = useState<string>('kanban');
   const [applications, setApplications] = useState<Application[]>([]);
   const [jobs, setJobs] = useState<JobPosting[]>([]);
@@ -21,6 +25,22 @@ export function App() {
   const [selectedAppForModal, setSelectedAppForModal] = useState<Application | null>(null);
   const [studioJobId, setStudioJobId] = useState<number | undefined>(undefined);
   const [studioDraftType, setStudioDraftType] = useState<'cover_letter' | 'follow_up_email'>('cover_letter');
+  const [authModalOpen, setAuthModalOpen] = useState(false);
+
+  // Toasts
+  const [toasts, setToasts] = useState<ToastMessage[]>([]);
+
+  const showToast = (message: string, type: 'success' | 'error' | 'info' = 'success') => {
+    const id = Math.random().toString(36).substring(2, 9);
+    setToasts((prev) => [...prev, { id, type, message }]);
+    setTimeout(() => {
+      setToasts((prev) => prev.filter((t) => t.id !== id));
+    }, 4000);
+  };
+
+  const dismissToast = (id: string) => {
+    setToasts((prev) => prev.filter((t) => t.id !== id));
+  };
 
   const fetchData = async () => {
     try {
@@ -45,16 +65,20 @@ export function App() {
 
   useEffect(() => {
     fetchData();
-  }, []);
+  }, [user]);
 
   const handleStatusChange = async (applicationId: string, newStatus: string, note?: string) => {
-    await api.applications.updateStatus(applicationId, { status: newStatus, note });
-    await fetchData();
+    try {
+      await api.applications.updateStatus(applicationId, { status: newStatus, note });
+      showToast(`Application transitioned to ${newStatus}!`, 'success');
+      await fetchData();
 
-    // If modal is open, refresh the selected app
-    if (selectedAppForModal && selectedAppForModal.id === applicationId) {
-      const updated = await api.applications.getById(applicationId);
-      setSelectedAppForModal(updated.application);
+      if (selectedAppForModal && selectedAppForModal.id === applicationId) {
+        const updated = await api.applications.getById(applicationId);
+        setSelectedAppForModal(updated.application);
+      }
+    } catch (err: any) {
+      showToast(`Failed to update status: ${err.message}`, 'error');
     }
   };
 
@@ -67,19 +91,23 @@ export function App() {
   const pendingNudgesCount = nudges.filter((n) => n.status === 'pending').length;
 
   return (
-    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-950 text-slate-100 flex flex-col selection:bg-indigo-500 selection:text-white">
       <Navbar
         currentTab={currentTab}
         setCurrentTab={setCurrentTab}
-        onBenchmarkLoaded={fetchData}
+        onBenchmarkLoaded={() => {
+          fetchData();
+          showToast('Loaded benchmark evaluation dataset (12 jobs & 6 drafts)!', 'success');
+        }}
         pendingNudgesCount={pendingNudgesCount}
+        onOpenAuthModal={() => setAuthModalOpen(true)}
       />
 
       <main className="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
         {loading && applications.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-64 space-y-3">
             <div className="w-8 h-8 border-2 border-indigo-500 border-t-transparent rounded-full animate-spin"></div>
-            <p className="text-xs text-slate-400">Connecting to PostgreSQL & Google GenAI pipeline...</p>
+            <p className="text-xs text-slate-400">Syncing with PostgreSQL & Google GenAI pipeline...</p>
           </div>
         ) : (
           <>
@@ -90,6 +118,13 @@ export function App() {
                 onOpenDraftStudio={handleOpenDraftStudio}
                 onViewDetails={(app) => setSelectedAppForModal(app)}
                 onRefresh={fetchData}
+                onSeedBenchmark={() => {
+                  fetch('/api/jobs/load-benchmark', { method: 'POST', headers: { 'x-demo-user': 'true' } })
+                    .then(() => {
+                      fetchData();
+                      showToast('Loaded benchmark evaluation dataset!', 'success');
+                    });
+                }}
               />
             )}
 
@@ -99,6 +134,7 @@ export function App() {
                 selectedJobId={studioJobId}
                 initialType={studioDraftType}
                 onDraftSaved={fetchData}
+                showToast={showToast}
               />
             )}
 
@@ -107,11 +143,15 @@ export function App() {
                 nudges={nudges}
                 onRefreshNudges={fetchData}
                 onOpenDraftStudio={handleOpenDraftStudio}
+                showToast={showToast}
               />
             )}
 
             {currentTab === 'ingestion' && (
-              <IngestionWizard onIngestionComplete={fetchData} />
+              <IngestionWizard
+                onIngestionComplete={fetchData}
+                showToast={showToast}
+              />
             )}
 
             {currentTab === 'analytics' && (
@@ -129,11 +169,32 @@ export function App() {
         onOpenDraftStudio={handleOpenDraftStudio}
       />
 
+      {/* Auth Modal */}
+      <AuthModal
+        isOpen={authModalOpen}
+        onClose={() => setAuthModalOpen(false)}
+        onSuccess={() => {
+          fetchData();
+          showToast('Signed in successfully!', 'success');
+        }}
+      />
+
+      {/* Floating Toast Notification Stack */}
+      <ToastContainer toasts={toasts} onDismiss={dismissToast} />
+
       {/* Footer */}
-      <footer className="border-t border-slate-900 bg-slate-950 py-4 text-center text-xs text-slate-500">
-        AI Job Application Tracker • Powered by Google Cloud & Gemini 2.5 • PostgreSQL Pipeline
+      <footer className="border-t border-slate-900 bg-slate-950/80 py-4 text-center text-xs text-slate-500">
+        AI Job Application Tracker • Google Cloud & Gemini 2.5 • PostgreSQL Pipeline
       </footer>
     </div>
+  );
+}
+
+export function App() {
+  return (
+    <AuthProvider>
+      <MainApp />
+    </AuthProvider>
   );
 }
 

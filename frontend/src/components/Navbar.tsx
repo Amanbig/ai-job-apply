@@ -6,18 +6,23 @@ import {
   Bell,
   UploadCloud,
   BarChart3,
-  Bot,
   Database,
   RefreshCw,
   CheckCircle2,
-  Cpu
+  Cpu,
+  User as UserIcon,
+  LogOut,
+  ChevronDown,
+  LogIn
 } from 'lucide-react';
+import { useAuth } from '../context/AuthContext';
 
 interface NavbarProps {
   currentTab: string;
   setCurrentTab: (tab: string) => void;
   onBenchmarkLoaded: () => void;
   pendingNudgesCount: number;
+  onOpenAuthModal: () => void;
 }
 
 export const Navbar: React.FC<NavbarProps> = ({
@@ -25,9 +30,12 @@ export const Navbar: React.FC<NavbarProps> = ({
   setCurrentTab,
   onBenchmarkLoaded,
   pendingNudgesCount,
+  onOpenAuthModal,
 }) => {
+  const { user, logout, demoLogin } = useAuth();
   const [loadingBenchmark, setLoadingBenchmark] = useState(false);
   const [benchmarkMsg, setBenchmarkMsg] = useState<string | null>(null);
+  const [showUserDropdown, setShowUserDropdown] = useState(false);
 
   const handleLoadBenchmark = async () => {
     try {
@@ -56,36 +64,36 @@ export const Navbar: React.FC<NavbarProps> = ({
       icon: Bell,
       badge: pendingNudgesCount > 0 ? pendingNudgesCount : undefined,
     },
-    { id: 'ingestion', label: 'Ingestion & Datasets', icon: UploadCloud },
-    { id: 'analytics', label: 'Analytics & Funnel', icon: BarChart3 },
+    { id: 'ingestion', label: 'Ingestion Hub', icon: UploadCloud },
+    { id: 'analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
   return (
-    <header className="border-b border-slate-800 bg-slate-900/90 backdrop-blur-md sticky top-0 z-40">
+    <header className="border-b border-slate-800/80 bg-slate-950/80 backdrop-blur-xl sticky top-0 z-40 transition-all">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex items-center justify-between h-16">
           {/* Brand Logo & Title */}
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 p-0.5 shadow-lg shadow-indigo-500/20">
+          <div className="flex items-center gap-3 cursor-pointer" onClick={() => setCurrentTab('kanban')}>
+            <div className="w-9 h-9 rounded-xl bg-gradient-to-tr from-indigo-600 via-indigo-500 to-sky-400 p-0.5 shadow-md shadow-indigo-500/20">
               <div className="w-full h-full bg-slate-950 rounded-[10px] flex items-center justify-center">
-                <Sparkles className="w-5 h-5 text-indigo-400" />
+                <Sparkles className="w-4 h-4 text-indigo-400" />
               </div>
             </div>
             <div>
               <div className="flex items-center gap-2">
-                <span className="font-bold text-base tracking-tight text-white">AI Job Pipeline</span>
-                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded">
+                <span className="font-bold text-sm tracking-tight text-white">AI Job Pipeline</span>
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 text-[9px] font-semibold bg-emerald-500/10 text-emerald-400 border border-emerald-500/30 rounded">
                   Google Cloud
                 </span>
-                <span className="px-1.5 py-0.5 text-[10px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded flex items-center gap-1">
+                <span className="hidden sm:inline-flex px-1.5 py-0.5 text-[9px] font-semibold bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded items-center gap-1">
                   <Cpu className="w-2.5 h-2.5" /> Gemini 2.5
                 </span>
               </div>
-              <p className="text-xs text-slate-400 hidden sm:block">Career Optimization & Scheduled Nudges</p>
+              <p className="text-[11px] text-slate-400 hidden sm:block">Career Optimization & Scheduled Nudges</p>
             </div>
           </div>
 
-          {/* Nav Tabs */}
+          {/* Center Navigation Tabs */}
           <nav className="hidden md:flex items-center space-x-1">
             {navItems.map((item) => {
               const Icon = item.icon;
@@ -94,16 +102,16 @@ export const Navbar: React.FC<NavbarProps> = ({
                 <button
                   key={item.id}
                   onClick={() => setCurrentTab(item.id)}
-                  className={`flex items-center gap-2 px-3.5 py-2 rounded-lg text-sm font-medium transition-all ${
+                  className={`flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-medium transition-all ${
                     isActive
                       ? 'bg-indigo-600/15 text-indigo-400 border border-indigo-500/30 shadow-sm'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-800/60'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-900'
                   }`}
                 >
-                  <Icon className={`w-4 h-4 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
+                  <Icon className={`w-3.5 h-3.5 ${isActive ? 'text-indigo-400' : 'text-slate-400'}`} />
                   <span>{item.label}</span>
                   {item.badge !== undefined && (
-                    <span className="px-1.5 py-0.2 text-[11px] font-bold bg-amber-500 text-slate-950 rounded-full">
+                    <span className="px-1.5 py-0.2 text-[10px] font-bold bg-amber-500 text-slate-950 rounded-full animate-pulse">
                       {item.badge}
                     </span>
                   )}
@@ -112,12 +120,13 @@ export const Navbar: React.FC<NavbarProps> = ({
             })}
           </nav>
 
-          {/* Benchmark Action Button & User info */}
+          {/* Right Action Area */}
           <div className="flex items-center gap-2.5">
+            {/* Benchmark Action Button */}
             <button
               onClick={handleLoadBenchmark}
               disabled={loadingBenchmark}
-              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition shadow-sm hover:border-slate-600 disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-slate-900 hover:bg-slate-800 text-slate-200 border border-slate-700/80 transition shadow-sm hover:border-slate-600 disabled:opacity-50"
               title="Loads the 10+ standard evaluation job postings and historical drafts"
             >
               {loadingBenchmark ? (
@@ -127,13 +136,73 @@ export const Navbar: React.FC<NavbarProps> = ({
               ) : (
                 <Database className="w-3.5 h-3.5 text-indigo-400" />
               )}
-              <span>{benchmarkMsg || 'Seed 10+ Evaluation Jobs'}</span>
+              <span className="hidden sm:inline">{benchmarkMsg || 'Seed 10+ Evaluation Jobs'}</span>
             </button>
+
+            {/* Authentication User Area */}
+            {user ? (
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserDropdown(!showUserDropdown)}
+                  className="flex items-center gap-2 px-2.5 py-1.5 rounded-lg bg-slate-900 hover:bg-slate-800 border border-slate-700/80 text-xs transition"
+                >
+                  <div className="w-5 h-5 rounded-full bg-gradient-to-tr from-indigo-500 to-sky-400 text-white font-bold flex items-center justify-center text-[10px]">
+                    {user.name?.charAt(0).toUpperCase() || 'U'}
+                  </div>
+                  <span className="text-slate-200 font-medium hidden sm:inline max-w-[100px] truncate">
+                    {user.name?.split(' ')[0] || user.email}
+                  </span>
+                  <ChevronDown className="w-3 h-3 text-slate-400" />
+                </button>
+
+                {showUserDropdown && (
+                  <div className="absolute right-0 mt-2 w-56 bg-slate-900 border border-slate-800 rounded-xl shadow-2xl p-2 z-50 text-xs space-y-1">
+                    <div className="px-3 py-2 border-b border-slate-800">
+                      <p className="font-semibold text-white truncate">{user.name}</p>
+                      <p className="text-[11px] text-slate-400 truncate">{user.email}</p>
+                      <span className="mt-1 inline-block px-1.5 py-0.2 rounded text-[9px] font-mono bg-emerald-500/10 text-emerald-400 border border-emerald-500/30">
+                        Authenticated Candidate
+                      </span>
+                    </div>
+
+                    <button
+                      onClick={async () => {
+                        await demoLogin();
+                        setShowUserDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-slate-800 text-slate-300 flex items-center gap-2 transition"
+                    >
+                      <Sparkles className="w-3.5 h-3.5 text-indigo-400" />
+                      <span>Switch to Demo Profile</span>
+                    </button>
+
+                    <button
+                      onClick={() => {
+                        logout();
+                        setShowUserDropdown(false);
+                      }}
+                      className="w-full text-left px-3 py-1.5 rounded-lg hover:bg-rose-500/10 text-rose-400 flex items-center gap-2 transition"
+                    >
+                      <LogOut className="w-3.5 h-3.5" />
+                      <span>Sign Out</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={onOpenAuthModal}
+                className="flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white shadow-sm transition"
+              >
+                <LogIn className="w-3.5 h-3.5" />
+                <span>Sign In</span>
+              </button>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Mobile Nav */}
+      {/* Mobile Nav Tabs */}
       <div className="md:hidden flex overflow-x-auto border-t border-slate-800/80 px-2 py-1.5 space-x-1">
         {navItems.map((item) => {
           const Icon = item.icon;

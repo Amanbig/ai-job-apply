@@ -9,11 +9,15 @@ import {
   ArrowRight,
   Database,
   RefreshCw,
-  FileCode
+  FileCode,
+  Copy,
+  Check,
+  Table
 } from 'lucide-react';
 
 interface IngestionWizardProps {
   onIngestionComplete: () => void;
+  showToast?: (message: string, type?: 'success' | 'error' | 'info') => void;
 }
 
 const SAMPLE_POSTINGS_CSV = `id, from, to, type, description
@@ -29,13 +33,14 @@ const SAMPLE_DRAFTS_CSV = `id, jobId, type, contents, status
 3, 2, cover_letter, "Dear Hiring Team at Nexus Stream Data, I am writing to express my strong interest in the Data Platform Engineer contract role...", reviewed
 4, 2, follow_up_email, "Dear Nexus Stream Data Recruiting Team, I hope this week is going well. Following our initial submission, here is a project update...", draft`;
 
-export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionComplete }) => {
+export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionComplete, showToast }) => {
   const [activeTab, setActiveTab] = useState<'postings' | 'drafts'>('postings');
   const [postingsCsv, setPostingsCsv] = useState(SAMPLE_POSTINGS_CSV);
   const [draftsCsv, setDraftsCsv] = useState(SAMPLE_DRAFTS_CSV);
   const [isProcessing, setIsProcessing] = useState(false);
   const [result, setResult] = useState<any>(null);
   const [error, setError] = useState<string | null>(null);
+  const [copied, setCopied] = useState(false);
 
   const handleIngestPostings = async () => {
     try {
@@ -53,9 +58,10 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
         type: 'postings',
         count: data.count,
         durationMs: data.durationMs,
-        postings: data.postings,
+        items: data.postings,
       });
       onIngestionComplete();
+      if (showToast) showToast(`Successfully ingested ${data.count} job postings!`, 'success');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -79,9 +85,10 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
         type: 'drafts',
         count: data.count,
         durationMs: data.durationMs,
-        drafts: data.drafts,
+        items: data.drafts,
       });
       onIngestionComplete();
+      if (showToast) showToast(`Successfully ingested ${data.count} drafts!`, 'success');
     } catch (err: any) {
       setError(err.message);
     } finally {
@@ -100,21 +107,34 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
       } else {
         setDraftsCsv(content);
       }
+      if (showToast) showToast(`Loaded file: ${file.name}`, 'info');
     };
     reader.readAsText(file);
   };
 
+  const handleCopySample = () => {
+    navigator.clipboard.writeText(activeTab === 'postings' ? SAMPLE_POSTINGS_CSV : SAMPLE_DRAFTS_CSV);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+
+  // Preview parsing of rows
+  const currentCsv = activeTab === 'postings' ? postingsCsv : draftsCsv;
+  const lines = currentCsv.trim().split('\n').filter(Boolean);
+  const headers = lines[0]?.split(',').map((h) => h.trim()) || [];
+  const previewRows = lines.slice(1, 5).map((line) => line.split(',').map((c) => c.trim()));
+
   return (
     <div className="space-y-6">
       {/* Overview Card */}
-      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5">
+      <div className="bg-slate-900/60 border border-slate-800 rounded-xl p-5 shadow-sm backdrop-blur-md">
         <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <div className="flex items-center gap-2">
               <UploadCloud className="w-5 h-5 text-indigo-400" />
               <h2 className="text-lg font-bold text-white tracking-tight">Structured Dataset Ingestion Engine</h2>
               <span className="px-2 py-0.5 text-xs bg-indigo-500/10 text-indigo-400 border border-indigo-500/30 rounded-full font-medium">
-                Schema Validator
+                Evaluation Validator
               </span>
             </div>
             <p className="text-xs text-slate-400 mt-1">
@@ -128,7 +148,7 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
               onClick={() => { setActiveTab('postings'); setResult(null); setError(null); }}
               className={`px-3 py-1.5 rounded-md font-medium transition ${
                 activeTab === 'postings'
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -138,7 +158,7 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
               onClick={() => { setActiveTab('drafts'); setResult(null); setError(null); }}
               className={`px-3 py-1.5 rounded-md font-medium transition ${
                 activeTab === 'drafts'
-                  ? 'bg-indigo-600 text-white'
+                  ? 'bg-indigo-600 text-white shadow-xs'
                   : 'text-slate-400 hover:text-white'
               }`}
             >
@@ -148,15 +168,25 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
         </div>
       </div>
 
-      {/* Schema Specification Notice */}
+      {/* Target Schema Banners */}
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-mono">
-        <div className={`p-3 rounded-lg border ${activeTab === 'postings' ? 'bg-indigo-950/20 border-indigo-500/30 text-indigo-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
-          <div className="font-bold mb-1">Target Postings Schema:</div>
-          <code className="text-[11px] block bg-slate-900 p-1.5 rounded">&lt;id&gt;, &lt;from&gt;, &lt;to&gt;, &lt;type&gt;, &lt;description&gt;</code>
+        <div className={`p-3.5 rounded-xl border ${activeTab === 'postings' ? 'bg-indigo-950/20 border-indigo-500/30 text-indigo-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
+          <div className="font-bold mb-1 flex items-center justify-between">
+            <span>Target Postings Schema:</span>
+            <span className="text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300">5 Columns</span>
+          </div>
+          <code className="text-[11px] block bg-slate-900/90 p-2 rounded border border-slate-800 text-indigo-200">
+            &lt;id&gt;, &lt;from&gt;, &lt;to&gt;, &lt;type&gt;, &lt;description&gt;
+          </code>
         </div>
-        <div className={`p-3 rounded-lg border ${activeTab === 'drafts' ? 'bg-indigo-950/20 border-indigo-500/30 text-indigo-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
-          <div className="font-bold mb-1">Target Drafts Schema:</div>
-          <code className="text-[11px] block bg-slate-900 p-1.5 rounded">&lt;id&gt;, &lt;jobId&gt;, &lt;type&gt;, &lt;contents&gt;, &lt;status&gt;</code>
+        <div className={`p-3.5 rounded-xl border ${activeTab === 'drafts' ? 'bg-indigo-950/20 border-indigo-500/30 text-indigo-300' : 'bg-slate-950 border-slate-800 text-slate-400'}`}>
+          <div className="font-bold mb-1 flex items-center justify-between">
+            <span>Target Drafts Schema:</span>
+            <span className="text-[10px] font-sans font-medium px-2 py-0.5 rounded bg-slate-800 text-slate-300">5 Columns</span>
+          </div>
+          <code className="text-[11px] block bg-slate-900/90 p-2 rounded border border-slate-800 text-indigo-200">
+            &lt;id&gt;, &lt;jobId&gt;, &lt;type&gt;, &lt;contents&gt;, &lt;status&gt;
+          </code>
         </div>
       </div>
 
@@ -171,6 +201,14 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
           </label>
 
           <div className="flex items-center gap-2">
+            <button
+              onClick={handleCopySample}
+              className="flex items-center gap-1 text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg border border-slate-700 transition"
+            >
+              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
+              <span>{copied ? 'Sample Copied' : 'Copy Sample CSV'}</span>
+            </button>
+
             <label className="text-xs bg-slate-800 hover:bg-slate-700 text-slate-300 px-3 py-1 rounded-lg border border-slate-700 cursor-pointer transition">
               <span>Upload CSV File</span>
               <input type="file" accept=".csv,.txt" onChange={handleFileUpload} className="hidden" />
@@ -183,10 +221,40 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
           onChange={(e) =>
             activeTab === 'postings' ? setPostingsCsv(e.target.value) : setDraftsCsv(e.target.value)
           }
-          rows={10}
-          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 leading-relaxed"
+          rows={9}
+          className="w-full bg-slate-950 border border-slate-800 rounded-lg p-3 text-xs font-mono text-slate-200 placeholder-slate-600 focus:outline-none focus:border-indigo-500 leading-relaxed shadow-inner"
           placeholder="Paste CSV content here..."
         />
+
+        {/* Live Structure Preview Table */}
+        {headers.length > 0 && previewRows.length > 0 && (
+          <div className="space-y-1.5 pt-1">
+            <div className="flex items-center gap-1.5 text-xs text-slate-400 font-semibold">
+              <Table className="w-3.5 h-3.5 text-indigo-400" />
+              <span>Parsed Ingestion Preview ({lines.length - 1} records detected):</span>
+            </div>
+            <div className="border border-slate-800 rounded-lg overflow-x-auto bg-slate-950 text-xs">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-900 border-b border-slate-800 text-[11px] font-mono text-indigo-300">
+                    {headers.map((h, i) => (
+                      <th key={i} className="p-2 border-r border-slate-800/80 last:border-0">{h}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {previewRows.map((row, rIdx) => (
+                    <tr key={rIdx} className="border-b border-slate-900 hover:bg-slate-900/40 font-mono text-[10px] text-slate-300">
+                      {row.map((cell, cIdx) => (
+                        <td key={cIdx} className="p-2 border-r border-slate-900 last:border-0 max-w-xs truncate">{cell}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
 
         <div className="flex items-center justify-between pt-2">
           <span className="text-xs text-slate-500">
@@ -196,7 +264,7 @@ export const IngestionWizard: React.FC<IngestionWizardProps> = ({ onIngestionCom
           <button
             onClick={activeTab === 'postings' ? handleIngestPostings : handleIngestDrafts}
             disabled={isProcessing}
-            className="flex items-center gap-2 px-5 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 transition disabled:opacity-50"
+            className="flex items-center gap-2 px-5 py-2.5 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white text-xs font-semibold shadow-lg shadow-indigo-500/20 transition disabled:opacity-50 cursor-pointer"
           >
             {isProcessing ? (
               <>
